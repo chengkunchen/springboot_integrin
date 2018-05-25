@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cck.mapper.system.SysUsersMapper">
+    <resultMap id="BaseResultModal" type="com.cck.model.system.SysUsers">
+        <id column="id" jdbcType="NVARCHAR" property="id"/>
+        <result column="user_id" jdbcType="NVARCHAR" property="user_id"/>
+        <result column="name" jdbcType="NVARCHAR" property="name"/>
+        <result column="mobile" jdbcType="NVARCHAR" property="mobile"/>
+        <result column="email" jdbcType="NVARCHAR" property="email"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="create_time"/>
+        <collection property="roles" ofType="com.cck.model.system.SysRole" resultMap="com.cck.mapper.system.SysRoleMapper.BaseResultMap">
+        </collection>
+    </resultMap>
+
+    <resultMap id="BaseResultMap" type="map">
+        <id column="id" jdbcType="NVARCHAR" property="id"/>
+        <result column="user_id" jdbcType="NVARCHAR" property="user_id"/>
+        <result column="name" jdbcType="NVARCHAR" property="name"/>
+        <result column="mobile" jdbcType="NVARCHAR" property="mobile"/>
+        <result column="email" jdbcType="NVARCHAR" property="email"/>
+    </resultMap>
+
+
+    <sql id="Base_Column_List">
+    id, user_id, name, mobile, email
+  </sql>
+
+
+    <select id="selectByPrimaryKey" resultMap="BaseResultModal" parameterType="java.lang.String">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_users
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <select id="findAllBySearch" resultType="Map" parameterType="java.lang.String">
+        select
+        <include refid="Base_Column_List"/>
+        from SYS_USERS
+        <where>
+            <if test="search != null and search!=''">
+                user_id like '%'||#{search}||'%'
+                OR name like '%${search}%'
+                OR mobile like '%'||#{search}||'%'
+                OR email like '%'||#{search}||'%'
+            </if>
+        </where>
+    </select>
+
+    <select id="getUsersWithRoles" resultMap="BaseResultModal">
+        select
+        a.id, a.user_id, a.name, a.mobile, a.email,c.*,c.id as rid from
+        sys_users a LEFT JOIN  sys_user_role b on a.id=b.user_id
+        LEFT JOIN sys_role c on  c.id = b.role_id
+    </select>
+
+
+    <select id="loginByUserIdAndPsd" parameterType="java.lang.String" resultType="java.lang.String">
+        SELECT  user_id
+        FROM sys_users WHERE user_id = #{user_id}
+        and password=#{password}
+    </select>
+
+    <insert id="insertSelective" parameterType="com.cck.model.system.SysUsers">
+        insert into sys_users
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            id, /*id必填项*/
+            <if test="user_id != null">
+                user_id,
+            </if>
+            <if test="name != null">
+                name,
+            </if>
+            <if test="mobile != null">
+                mobile,
+            </if>
+            <if test="email != null">
+                email,
+            </if>
+            <if test="password != null">
+                password,
+            </if>
+        </trim>
+
+        <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+            #{id},
+            <if test="user_id != null">
+                #{user_id},
+            </if>
+            <if test="name != null">
+                #{name},
+            </if>
+            <if test="mobile != null">
+                #{mobile},
+            </if>
+            <if test="email != null">
+                #{email},
+            </if>
+            <if test="password != null">
+                #{password},
+            </if>
+        </trim>
+
+    </insert>
+
+
+    <insert id="insertBatch" parameterType="list">
+        INSERT into sys_users (id,user_id,name,mobile,email,password)
+        SELECT xx.* FROM (
+        <foreach collection="list" item="it" separator="union">
+            select
+            #{it.id},
+            #{it.user_id},
+            #{it.name}, /*不加类型的为必填项*/
+            #{it.mobile,jdbcType=NVARCHAR},/*有可能为空的话 必须加类型 不然会报错*/
+            #{it.email,jdbcType=NVARCHAR},
+            #{it.password}
+            from dual
+        </foreach>
+        )xx
+    </insert>
+
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.cck.model.system.SysUsers" >
+        update sys_users
+        <set >
+            <if test="user_id != null" >
+                user_id = #{user_id,jdbcType=VARCHAR},
+            </if>
+            <if test="name != null" >
+                name = #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="mobile != null" >
+                mobile = #{mobile,jdbcType=VARCHAR},
+            </if>
+            <if test="create_time != null" >
+                create_time = #{create_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="email != null" >
+                email = #{email,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+
+
+
+</mapper>

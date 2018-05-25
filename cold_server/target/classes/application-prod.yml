@@ -1,0 +1,51 @@
+spring:
+    datasource:
+        name: test
+        url: jdbc:oracle:thin:@120.132.93.66:1521:ORCL
+        username: c##smart
+        password: 123456
+        # 使用druid数据源
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: oracle.jdbc.OracleDriver
+        filters: stat
+        maxActive: 20
+        initialSize: 1
+        maxWait: 60000
+        minIdle: 1
+        timeBetweenEvictionRunsMillis: 60000
+        minEvictableIdleTimeMillis: 300000
+        validationQuery: select 'x'
+        testWhileIdle: true
+        testOnBorrow: false
+        testOnReturn: false
+        poolPreparedStatements: true
+        maxOpenPreparedStatements: 20
+
+    cache:
+          type: redis
+
+    redis:
+          host: 127.0.0.1
+          port: 6379
+          timeout: 1000
+          database: 0
+          jedis:
+            pool:
+              max-active: 10
+              max-idle: 8
+              min-idle: 2
+              max-wait: 100
+
+
+#pagehelper分页插件
+pagehelper:
+#  helperDialect: com.github.pagehelper.dialect.helper.MySqlDialect
+  helperDialect: oracle
+  reasonable: true
+  supportMethodsArguments: true
+  params: count=countSql
+  pageSizeZero: true
+
+
+
+pageSize: 10

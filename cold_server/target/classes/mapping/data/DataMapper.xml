@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cck.mapper.data.DataMapper">
+
+	<!-- 查询数据列表   -->
+	<select id="findList" parameterType="com.cck.model.TableInfo" resultType="java.util.HashMap">
+        SELECT
+        	<choose>
+	           	<when test="tableInfo.selectColumns!=null and tableInfo.selectColumns.length > 0 ">
+	                <foreach collection="tableInfo.selectColumns" item="column" separator=" , ">
+		                ${column}
+		            </foreach>
+	           	</when >
+	           	<otherwise>
+	           		${tableInfo.tableName}.*
+	           	</otherwise>
+	       	</choose>
+	       	<if test="joins!=null and joins.size > 0">
+		       	<foreach collection="joins" item="join" index="index">
+		       		<if test="join.selectColumn!=null and join.selectColumn.length > 0">
+		       			<foreach collection="join.selectColumn" item="col" index="index" open=","  separator=" , ">
+		       				${join.joinTable}.${col}
+		       			</foreach>
+		       		</if>
+		       	</foreach>
+	       	</if>
+        FROM ${tableInfo.tableName}
+		<if test="joins!=null and joins.size > 0">
+          <foreach collection="joins" item="join" index="index">
+              <choose>
+            	<when test="join.joinType == 0 ">
+                	LEFT JOIN
+            	</when >
+            	<when test="join.joinType == 1 ">
+                	INNER JOIN
+            	</when >
+            	<when test="join.joinType == 2 ">
+                	OUTER JOIN
+            	</when >
+            	<otherwise>
+            		LEFT JOIN
+            	</otherwise>
+	          </choose>
+	          ${join.joinTable}
+	          on
+	          <if test="join.joinFilter!=null and join.joinFilter.size > 0">
+	            <foreach collection="join.joinFilter" item="filter" index="index" separator=" AND ">
+		          <choose>
+		           	<when test="filter.filterType == 'IS NULL' ">
+		               	${join.joinTable}.${filter.columnName} IS NULL
+		           	</when >
+		           	<when test="filter.filterType == 'IS NOT NULL' ">
+		               	${join.joinTable}.${filter.columnName} IS NOT NULL
+		           	</when >
+		           	<otherwise>
+		           		${join.joinTable}.${filter.columnName} ${filter.filterType} ${tableInfo.tableName}.${filter.filterValue}
+		           	</otherwise>
+		         </choose>
+		       </foreach>
+	         </if>
+          </foreach>
+        </if>
+        <if test="tableInfo.filters!=null and tableInfo.filters.size > 0">
+	        <where>
+	          <foreach collection="tableInfo.filters" item="filter" index="index" separator=" AND ">
+	              <choose>
+	            	<when test="filter.filterType == 'in' or filter.filterType == 'not in' ">
+	                	${tableInfo.tableName}.${filter.columnName} ${filter.filterType} ${'('+filter.filterValue+')'}
+	            	</when >
+	            	<when test="filter.filterType == 'IS NULL' ">
+	                	${tableInfo.tableName}.${filter.columnName} IS NULL
+	            	</when >
+	            	<when test="filter.filterType == 'IS NOT NULL' ">
+	                	${tableInfo.tableName}.${filter.columnName} IS NOT NULL
+	            	</when >
+	            	<when test="filter.columnName.endsWith('_DT') ">
+	                	${tableInfo.tableName}.${filter.columnName} ${filter.filterType} to_date('${filter.filterValue}','yyyy-mm-dd')
+	            	</when >
+	            	<otherwise>
+	            		${tableInfo.tableName}.${filter.columnName} ${filter.filterType} '${filter.filterValue}'
+	            	</otherwise>
+	        	  </choose>
+	          </foreach>
+	        </where>
+        </if>
+        <if test="tableInfo.groupFlag ">
+          group by 'group'
+          <foreach collection="tableInfo.selectColumns" index="index" item="column">
+        	<if test="column.indexOf('MIN(')==-1 and column.indexOf('MAX(')==-1 and column.indexOf('COUNT(')==-1 ">
+	      	  ,${column}
+		    </if>
+		  </foreach>
+	      <if test="joins!=null and joins.size > 0">
+	       	<foreach collection="joins" item="join" index="index">
+	       	  <if test="join.selectColumn!=null and join.selectColumn.length > 0">
+       			<foreach collection="join.selectColumn" item="col" index="index">
+       			  <if test="col.indexOf('MIN(')==-1 and col.indexOf('MAX(')==-1 and col.indexOf('COUNT(')==-1 ">
+       				,${join.joinTable}.${col}
+       			  </if>
+       			</foreach>
+	       	  </if>
+	       	</foreach>
+	      </if>
+        </if>
+        <choose>
+        	<when test=" tableInfo.orders!=null and tableInfo.orders!='' ">
+              	order by ${tableInfo.orders}
+          	</when >
+        	<when test=" tableInfo.groupFlag ">
+        	  order by 'group'
+              <foreach collection="tableInfo.selectColumns" item="column">
+	        	<if test="column.indexOf('MIN(')==-1 and column.indexOf('MAX(')==-1 and column.indexOf('COUNT(')==-1 ">
+			     ,${column}
+			    </if>
+			  </foreach>
+		      <if test="joins!=null and joins.size > 0">
+		       	<foreach collection="joins" item="join" index="index">
+		       	  <if test="join.selectColumn!=null and join.selectColumn.length > 0">
+	       			<foreach collection="join.selectColumn" item="col" index="index">
+	       			  <if test="col.indexOf('MIN(')==-1 and col.indexOf('MAX(')==-1 and col.indexOf('COUNT(')==-1 ">
+	       				,${join.joinTable}.${col}
+	       			  </if>
+	       			</foreach>
+		       	  </if>
+		       	</foreach>
+		      </if>
+          	</when >
+          	<!--<otherwise>
+          		order by ${tableInfo.tableName}.UPDATE_DT DESC
+          	</otherwise>-->
+      	</choose>
+    </select>
+    
+    <!-- 查询数据明细   -->
+	<select id="findDetail" parameterType="com.cck.model.TableInfo" resultType="java.util.HashMap">
+        SELECT
+            <choose>
+	           	<when test="tableInfo.selectColumns!=null and tableInfo.selectColumns.length > 0 ">
+	                <foreach collection="tableInfo.selectColumns" item="column" separator=" , ">
+		                ${column}
+		            </foreach>
+	           	</when >
+	           	<otherwise>
+	           		${tableInfo.tableName}.*
+	           	</otherwise>
+	       	</choose>
+	        <if test="joins!=null and joins.size > 0">
+		       	<foreach collection="joins" item="join" index="index">
+		       		<if test="join.selectColumn!=null and join.selectColumn.length > 0">
+		       			<foreach collection="join.selectColumn" item="col" index="index" open=","  separator=" , ">
+		       				${join.joinTable}.${col}
+		       			</foreach>
+		       		</if>
+		       	</foreach>
+	       	</if>
+        FROM ${tableInfo.tableName}
+        <if test="joins!=null and joins.size > 0">
+          <foreach collection="joins" item="join" index="index">
+              <choose>
+            	<when test="join.joinType == 0 ">
+                	LEFT JOIN
+            	</when >
+            	<when test="join.joinType == 1 ">
+                	INNER JOIN
+            	</when >
+            	<when test="join.joinType == 2 ">
+                	OUTER JOIN
+            	</when >
+            	<otherwise>
+            		LEFT JOIN
+            	</otherwise>
+	          </choose>
+	          ${join.joinTable}
+	          on
+	          <if test="join.joinFilter!=null and join.joinFilter.size > 0">
+	            <foreach collection="join.joinFilter" item="filter" index="index" separator=" AND ">
+		          <choose>
+		           	<when test="filter.filterType == 'IS NULL' ">
+		               	${join.joinTable}.${filter.columnName} IS NULL
+		           	</when >
+		           	<when test="filter.filterType == 'IS NOT NULL' ">
+		               	${join.joinTable}.${filter.columnName} IS NOT NULL
+		           	</when >
+		           	<otherwise>
+		           		${join.joinTable}.${filter.columnName} ${filter.filterType} ${tableInfo.tableName}.${filter.filterValue}
+		           	</otherwise>
+		         </choose>
+		       </foreach>
+	         </if>
+          </foreach>
+        </if>
+        <if test="tableInfo.filters!=null and tableInfo.filters.size > 0">
+	        <where>
+	          <foreach collection="tableInfo.filters" item="filter" index="index" separator=" AND ">
+	               <choose>
+	            	<when test="filter.filterType == 'in' or filter.filterType == 'not in' ">
+	                	${tableInfo.tableName}.${filter.columnName} ${filter.filterType} ${'('+filter.filterValue+')'}
+	            	</when >
+	            	<when test="filter.filterType == 'IS NULL' ">
+	                	${tableInfo.tableName}.${filter.columnName} IS NULL
+	            	</when >
+	            	<when test="filter.filterType == 'IS NOT NULL' ">
+	                	${tableInfo.tableName}.${filter.columnName} IS NOT NULL
+	            	</when >
+	            	<when test="filter.columnName.endsWith('_DT') ">
+	                	${tableInfo.tableName}.${filter.columnName} ${filter.filterType} to_date('${filter.filterValue}','yyyy-mm-dd')
+	            	</when >
+	            	<otherwise>
+	            		${tableInfo.tableName}.${filter.columnName} ${filter.filterType} '${filter.filterValue}'
+	            	</otherwise>
+	        	  </choose>
+	          </foreach>
+	        </where>
+        </if>
+        
+    </select>
+	
+	<!-- 更新数据   -->
+	<update id="updateByMap" parameterType="com.cck.model.TableInfo">
+		update ${tableName}
+		<set>
+			<foreach collection="data.keys" item="key" separator=",">
+			  <choose>
+            	<when test="key.endsWith('_DT') and key!='UPDATE_DT' and data[key]!=null">
+	            	${key}=to_date(#{data.${key}},'yyyy-mm-dd')
+            	</when >
+            	<when test="data[key]!=null and key!='UPDATE_DT'">
+	            	${key}=#{data.${key}}
+            	</when >
+	          </choose>
+	    	</foreach>
+	    	,UPDATE_DT = SYSDATE
+		</set>
+        <if test="filters!=null and filters.size > 0">
+	        <where>
+	          <foreach collection="filters" item="filter" index="index" separator=" AND ">
+	               <choose>
+	            	<when test="filter.filterType == 'in' or filter.filterType == 'not in' ">
+	                	${filter.columnName} ${filter.filterType} ${'('+filter.filterValue+')'}
+	            	</when >
+	            	<when test="filter.filterType == 'IS NULL' ">
+	                	${tableInfo.tableName}.${filter.columnName} IS NULL
+	            	</when >
+	            	<when test="filter.filterType == 'IS NOT NULL' ">
+	                	${tableInfo.tableName}.${filter.columnName} IS NOT NULL
+	            	</when >
+	            	<when test="filter.columnName.endsWith('_DT') ">
+	                	${tableInfo.tableName}.${filter.columnName} ${filter.filterType} to_date('${filter.filterValue}','yyyy-mm-dd')
+	            	</when >
+	            	<otherwise>
+	            		${filter.columnName} ${filter.filterType} '${filter.filterValue}'
+	            	</otherwise>
+	        	  </choose>
+	          </foreach>
+	        </where>
+        </if>
+	</update>
+	
+	<delete id="delData" parameterType="com.cck.model.TableInfo">
+        delete from ${tableName}
+        <if test="filters!=null and filters.size > 0">
+          <where>
+	          <foreach collection="filters" item="filter" index="index" separator=" AND ">
+	               <choose>
+	            	<when test="filter.filterType == 'in' or filter.filterType == 'not in' ">
+	                	${filter.columnName} ${filter.filterType} ${'('+filter.filterValue+')'}
+	            	</when >
+	            	<when test="filter.filterType == 'IS NULL' ">
+	                	${tableInfo.tableName}.${filter.columnName} IS NULL
+	            	</when >
+	            	<when test="filter.filterType == 'IS NOT NULL' ">
+	                	${tableInfo.tableName}.${filter.columnName} IS NOT NULL
+	            	</when >
+	            	<when test="filter.columnName.endsWith('_DT') ">
+	                	${tableInfo.tableName}.${filter.columnName} ${filter.filterType} to_date('${filter.filterValue}','yyyy-mm-dd')
+	            	</when >
+	            	<otherwise>
+	            		${filter.columnName} ${filter.filterType} '${filter.filterValue}'
+	            	</otherwise>
+	        	  </choose>
+	          </foreach>
+	        </where>
+        </if>
+    </delete>
+	
+	<!-- 新增数据(SEQ主键)   -->
+	<insert id="saveByMap" parameterType="java.util.HashMap">
+		<!-- 返回主键等待seq数据库seq -->
+		<selectKey resultType="java.lang.Long" order="BEFORE" keyProperty="id.value">  
+       		SELECT ${seqName}.Nextval as id from DUAL  
+   		</selectKey> 
+		insert into ${tableInfo.tableName}
+		(${id.name}
+		<foreach collection="tableInfo.data.keys" item="key" >
+			<if test="key!='id' and  key!='UPDATE_DT' and tableInfo.data[key]!=null">
+	            ,${key}
+	        </if>
+	    </foreach>
+	    ,UPDATE_DT)
+		values
+		(#{id.value}
+		<foreach collection="tableInfo.data.keys" item="key">
+	        <choose>
+            	<when test="key.endsWith('_DT') and key!='UPDATE_DT' and tableInfo.data[key]!=null">
+	            	,to_date(#{tableInfo.data.${key}},'yyyy-mm-dd')
+            	</when >
+            	<when test="key!='id' and tableInfo.data[key]!=null and key!='UPDATE_DT'">
+	            	,#{tableInfo.data.${key}}
+            	</when >
+	        </choose>
+	    </foreach>
+	    ,SYSDATE)
+	</insert>
+	
+	<!-- 新增数据(非SEQ主键)   -->
+	<insert id="saveByMapNoSeq" parameterType="java.util.HashMap">
+		insert into ${tableInfo.tableName}
+		(UPDATE_DT
+		<foreach collection="tableInfo.data.keys" item="key" >
+			<if test="key!='id' and  key!='UPDATE_DT' and tableInfo.data[key]!=null">
+	            ,${key}
+	        </if>
+	    </foreach>
+	    )
+		values
+		(SYSDATE
+		<foreach collection="tableInfo.data.keys" item="key">
+	        <choose>
+            	<when test="key.endsWith('_DT') and key!='UPDATE_DT' and tableInfo.data[key]!=null">
+	            	,to_date(#{tableInfo.data.${key}},'yyyy-mm-dd')
+            	</when >
+            	<when test="key!='id' and tableInfo.data[key]!=null and key!='UPDATE_DT'">
+	            	,#{tableInfo.data.${key}}
+            	</when >
+	        </choose>
+	    </foreach>
+	    )
+	</insert>
+</mapper>
